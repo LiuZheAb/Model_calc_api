@@ -1,3 +1,27 @@
+/*
+ *文件名 : index.less
+ *作者 : 刘哲
+ *创建时间 : 2020/11/2
+ *文件描述 : 样式文件
+ */
+
+/*头部高度*/
+@header_height: 120px;
+/*底部为单行文本时的高度*/
+@singleline_footer_height: 54px;
+/*底部为三行文本时的高度*/
+@tripleline_footer_height: 98px;
+/*页面padding距离*/
+@padding: 16px;
+/*参数部分宽度*/
+@paramcontent_width: 340px;
+/*按钮颜色*/
+@btn_color: #1a6bb7;
+/*鼠标悬停在按钮上时的颜色*/
+@btn_hover_color: #029ce9;
+/*表单控件宽度*/
+@input_compnent_width: 180px;
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -12,17 +36,7 @@ code {
     monospace;
 }
 
-@header_height: 120px;
-@singleline_footer_height: 54px;
-@tripleline_footer_height: 98px;
-@padding: 16px;
-@paramcontent_width: 340px;
-@btn_color: #1a6bb7;
-@btn_hover_color: #029ce9;
-@input_compnent_width: 180px;
-
 .main {
-  user-select: none;
   background-color: #f4f4f4;
 
   .header {
@@ -37,6 +51,7 @@ code {
       margin: 0 auto;
 
       .logo {
+        user-select: none;
         height: @header_height;
       }
     }
@@ -248,7 +263,7 @@ code {
 
 .modeldrawer .ant-drawer-content-wrapper {
   width: 100% !important;
-  max-width: 400px;
+  max-width: 500px;
 }
 
 .ant-picker-now {
@@ -273,9 +288,10 @@ code {
       justify-content: flex-end;
       height: calc(100vh - @header_height - @tripleline_footer_height);
       min-height: 866px;
+      background-color: #fff;
 
       .params-container {
-        width: 100%;
+        margin: 0 auto;
         box-shadow: unset;
       }
 
@@ -296,6 +312,23 @@ code {
 }
 
 @media (max-width:576px) {
+  .main .content .params-container {
+    width: 100%;
+
+    .ant-input-affix-wrapper,
+    .ant-input-number,
+    .ant-picker,
+    .ant-select,
+    .ant-radio-group {
+      width: calc(100% - 130px)
+    }
+
+    .ant-radio-wrapper {
+      margin-right: 10px;
+    }
+  }
+
+
   .stg-details-table-container {
     display: unset;
 

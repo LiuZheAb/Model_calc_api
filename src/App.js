@@ -1,3 +1,10 @@
+/*
+ *文件名 : App.js
+ *作者 : 刘哲
+ *创建时间 : 2020/11/2
+ *文件描述 : 主体功能文件
+ */
+
 import React, { Component } from 'react';
 import axios from "axios";
 import moment from 'moment';
@@ -9,9 +16,16 @@ import locale from 'antd/es/date-picker/locale/zh_CN';
 import logo from "./assets/images/logo.png";
 import './index.less'
 
-const format = 'HH:mm';
-const { confirm } = Modal;
+//模型计算接口地址
 const url = "http://139.217.82.132:5000/";
+/**
+ * 
+ * 地图配置参数
+ * 
+ * @param {*} Scale 地图比例尺
+ * @param {*} ControlBar 地图旋转、缩放按钮
+ * @param {*} Scale 地图切换覆盖层按钮
+*/
 const mapPlugins = [
   'Scale',
   {
@@ -28,6 +42,7 @@ const mapPlugins = [
     },
   }
 ];
+//磁场模型选项
 const modelOptions = [
   { label: "CHAOS7.2", value: "chaos" },
   { label: "DIFI4", value: "difi" },
@@ -39,6 +54,14 @@ const modelOptions = [
   { label: "WMM2020", value: "wmm" },
   { label: "TIDE", value: "tide" },
 ];
+/**
+ * 
+ * 表格列配置
+ * 
+ * @param {*} title 列名
+ * @param {*} dataIndex 数据key
+ * @param {*} ellipsis 是否可缩略显示
+*/
 const columns = [
   {
     title: '参数名称',
@@ -51,6 +74,13 @@ const columns = [
     ellipsis: true
   },
 ];
+/**
+ * 
+ * 验证是否为空值
+ * 
+ * @param {*} param 被验证的值
+ * @param {*} paramName 被验证值的名称
+*/
 const checkNullvalue = (param, paramName) => {
   let checks = true;
   if (param === undefined || param === "" || param === null) {
@@ -61,6 +91,13 @@ const checkNullvalue = (param, paramName) => {
   }
   return checks;
 };
+/**
+ * 
+ * 将对象转换为表格需要的数据格式
+ * 
+ * @param {*} data 数据源对象
+ * @param {*} targetDataSource 转换完成的数据
+*/
 const objectToDataSource = (data, targetDataSource) => {
   for (let key in data) {
     targetDataSource.push({
@@ -71,14 +108,29 @@ const objectToDataSource = (data, targetDataSource) => {
   }
   return targetDataSource;
 };
+/**
+ * 
+ * 缓存计算结果的消息提示
+ * 
+ * @param {*} message 消息的标题
+ * @param {*} description 消息的具体描述
+ * @param {*} duration 显示时长
+ * @param {*} placement 显示出现的位置
+*/
 const openNotification = () => {
   notification.info({
     message: '计算结果已缓存',
-    description:
-      '点击 “查看计算记录按钮” 可查看计算记录。',
-    duration: 2
+    description: '点击 “查看计算记录按钮” 可查看计算记录。',
+    duration: 2,
+    placement: "topLeft"
   });
 };
+/**
+ * 
+ * 日历中不可选日期
+ * 
+ * @param {*} current 要判断是否符合要求的时间
+*/
 const disabledDate = current => current < moment(new Date(2000, 0, 1)) || current > moment();
 
 export default class index extends Component {
@@ -115,6 +167,12 @@ export default class index extends Component {
       calcTime: ""
     };
     const _this = this;
+    /**
+      * 
+      * 地图事件
+      * 
+      * @param {*} click 点击事件
+    */
     this.mapEvents = {
       click(e) {
         _this.setState({
@@ -125,6 +183,17 @@ export default class index extends Component {
         })
       },
     };
+    /**
+      * 
+      * 计算结果表格列配置
+      * 
+      * @param {*} title 列名
+      * @param {*} dataIndex 数据key
+      * @param {*} ellipsis 是否可缩略显示
+      * @param {*} width 列宽
+      * @param {*} align 对齐方式
+      * @param {*} render 渲染方式
+    */
     this.calcStorageColumns = [
       {
         title: '序号',
@@ -175,12 +244,21 @@ export default class index extends Component {
       },
     ];
   }
+  // 组件挂载时调用
   componentDidMount() {
     let { model, calcStorage } = this.state;
     this.setModelDescName(model);
     this.setCalcDataSource(calcStorage);
   }
+  /**
+    * 
+    * 修改经度或纬度功能
+    * 
+    * @param {*} key 判断修改的是经度还是纬度
+    * @param {*} value 经度或纬度的值
+  */
   handleChangeLngLat = (key, value) => this.setState({ [key]: value }, () => this.locateCenter());
+  // 根据经纬度的值在地图上定位功能
   locateCenter = () => {
     let { inputLng, inputLat } = this.state;
     if (typeof (inputLng) === "number" && typeof (inputLat) === "number" && String(inputLng).length > 0 && String(inputLat).length > 0) {
@@ -190,12 +268,37 @@ export default class index extends Component {
       });
     }
   }
+  /**
+    * 
+    * 修改高程或时区功能
+    * 
+    * @param {*} key 判断修改的是高程还是时区
+    * @param {*} value 高程或时区的值
+  */
   handleChangeParam = (key, value) => this.setState({ [key]: value });
+  /**
+    * 
+    * 修改高程单位功能
+    * 
+    * @param {*} e 修改高程单位选项时传入的对象
+  */
   handleChangeElevUnit = e => this.setState({ elevUint: e.target.value });
+  /**
+    * 
+    * 修改磁场模型功能
+    * 
+    * @param {*} value 当前所选择的磁场模型
+  */
   handleChangeModel = value => {
     this.setState({ model: value });
     this.setModelDescName(value);
   }
+  /**
+    * 
+    * 设置磁场模型介绍的标题和内容功能，在组件挂载和修改磁场模型调用
+    * 
+    * @param {*} value 当前所选择的磁场模型
+  */
   setModelDescName = value => {
     let modelDesc = "", modelName = "";
     switch (value) {
@@ -239,10 +342,17 @@ export default class index extends Component {
     }
     this.setState({ modelDesc, modelName });
   }
+  //控制磁场模型介绍抽屉是否显示
   handleModeldesDrawerVisible = () => {
     let { drwaerVisible } = this.state;
     this.setState({ drwaerVisible: !drwaerVisible });
   }
+  /**
+    * 
+    * 修改日期功能
+    * 
+    * @param {*} moment 所选择日期对应的时间对象
+  */
   handleChangeDate = moment => {
     this.setState({
       minYear: moment._d.getFullYear(),
@@ -250,12 +360,19 @@ export default class index extends Component {
       minDay: moment._d.getDate()
     });
   }
+  /**
+    * 
+    * 修改时间功能
+    * 
+    * @param {*} moment 所选择时间对应的时间对象
+  */
   handleChangeTime = moment => {
     this.setState({
       hour: moment._d.getHours(),
       minute: moment._d.getMinutes()
     })
   }
+  //提交参数并计算功能，计算成功后，显示计算结果对话框
   handleSubmit = () => {
     let { inputLng, inputLat, altitude, elevUint, model, minYear, minMonth, minDay, hour, minute, utc } = this.state;
     let _this = this;
@@ -293,11 +410,14 @@ export default class index extends Component {
       });
     }
   }
+  //显示计算结果对话框
   openResModal = () => this.setState({ modalVisible: true });
+  //关闭计算结果对话框
   closeResModal = () => {
     this.setState({ modalVisible: false });
     if (this.state.calcStatus) { openNotification(); }
   }
+  //缓存计算结果到sessionStorage中
   handleSaveResult = () => {
     const { longitude, latitude, altitude, elevUint, model, minYear, minMonth, minDay, hour, minute, utc, calcResult, calcStorage } = this.state;
     const calcParams = { longitude, latitude, altitude, elevUint, model, minYear, minMonth, minDay, hour, minute, utc };
@@ -308,6 +428,12 @@ export default class index extends Component {
     this.setState({ calcStorage });
     this.setCalcDataSource(calcStorage);
   }
+  /**
+    * 
+    * 生成计算记录表格所需的数据格式
+    * 
+    * @param {*} calcStorage 要转换的数据
+  */
   setCalcDataSource = calcStorage => {
     const calcDataSource = [];
     for (let i = 0, len = calcStorage.length; i < len; i++) {
@@ -321,10 +447,17 @@ export default class index extends Component {
     }
     this.setState({ calcDataSource });
   }
+  //控制计算记录抽屉是否显示
   handleStgDrawerVisible = () => {
     let { storageVisible } = this.state;
     this.setState({ storageVisible: !storageVisible });
   }
+  /**
+    * 
+    * 删除计算记录
+    * 
+    * @param {*} index 要删除计算记录的序号
+  */
   handleDeleteStorage = index => {
     let { calcStorage } = this.state;
     calcStorage.splice(index, 1);
@@ -332,6 +465,12 @@ export default class index extends Component {
     sessionStorage.setItem("calcStorage", JSON.stringify(calcStorage));
     this.setCalcDataSource(calcStorage);
   }
+  /**
+    * 
+    * 查看计算记录详情
+    * 
+    * @param {*} index 要查看计算记录的序号
+  */
   openStgDetailDrawer = index => {
     let { calcStorage } = this.state, calcStgParamData = [], calcStgResData = [];
     objectToDataSource(calcStorage[index].calcParams, calcStgParamData);
@@ -343,7 +482,9 @@ export default class index extends Component {
       calcTime: calcStorage[index].calcTime
     });
   }
+  //关闭计算记录详情抽屉
   closeStgDetailDrawer = () => this.setState({ detailVisible: false });
+  // 清空计算记录
   clearStorage = () => {
     this.setState({ calcStorage: [] });
     sessionStorage.removeItem("calcStorage");
@@ -421,7 +562,7 @@ export default class index extends Component {
             </div> */}
             <div className="param">
               <span className="param-label">时间：</span>
-              <TimePicker defaultValue={moment('12:00', format)} locale={locale} placeholder="请选择时间" format={format} onChange={this.handleChangeTime} allowClear={false} />
+              <TimePicker defaultValue={moment('12:00', 'HH:mm')} locale={locale} placeholder="请选择时间" format={'HH:mm'} onChange={this.handleChangeTime} allowClear={false} />
             </div>
             {/* <div className="param">
               <span className="param-label">时：</span>
@@ -468,7 +609,7 @@ export default class index extends Component {
         <Button className="custom-btn storage-btn" onClick={this.handleStgDrawerVisible} type="primary">查看计算记录</Button>
         <Drawer className="calcdrawer" title="计算记录" placement="left" onClose={this.handleStgDrawerVisible} visible={storageVisible} footerStyle={{ textAlign: "right" }}
           footer={
-            <Button onClick={() => confirm({
+            <Button onClick={() => Modal.confirm({
               title: '确定要清空记录吗?',
               icon: <QuestionCircleOutlined style={{ color: 'red' }} />,
               content: "记录清空后将无法恢复。",
