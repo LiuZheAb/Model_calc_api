@@ -5,17 +5,24 @@
  *文件描述 : 数据可视化组件
  */
 import React, { Component } from 'react';
-import { Button, Input, message } from "antd";
+import {
+    Button, message,
+    // Input 
+} from "antd";
 import { Chart } from '@antv/g2';
-import { FullscreenOutlined, FullscreenExitOutlined, CopyOutlined } from '@ant-design/icons';
+import { FullscreenOutlined, FullscreenExitOutlined, CopyOutlined, RollbackOutlined } from '@ant-design/icons';
 import copy from 'copy-to-clipboard';
+import Monaco from 'react-monaco-editor';
+import 'monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution';
 
 export default class DataVis extends Component {
     constructor(props) {
         super(props);
         this.state = {
             data: [],
-            isFullScreen: false
+            isFullScreen: false,
+            fullScreenVisible: true,
+            showIcon: false
         };
     }
     // 组件挂载时调用
@@ -52,72 +59,86 @@ export default class DataVis extends Component {
                     }
                 });
                 chart.axis('nlp', false);
-                chart.axis('blockchain', {
-                    title: {
-                        offset: 0,
-                        text: "搜索热度指数",
-                        rotate: 0,
-                        style: {
-                            x: 0,
-                            y: 50,
-                            textAlign: "left",
-                            fontSize: 14,
-                            fontWeight: "bold"
-                        }
-                    },
-                });
-                chart.legend({
-                    custom: true,
-                    items: [
-                        { name: 'blockchain', value: 'blockchain', marker: { symbol: 'line', style: { stroke: '#1890ff', lineWidth: 2 } } },
-                        { name: 'nlp', value: 'nlp', marker: { symbol: 'line', style: { stroke: '#2fc25b', lineWidth: 2 } } },
-                    ],
-                });
+                // chart.axis('blockchain', {
+                //     title: {
+                //         offset: 0,
+                //         text: "搜索热度指数",
+                //         rotate: 0,
+                //         style: {
+                //             x: 0,
+                //             y: 50,
+                //             textAlign: "left",
+                //             fontSize: 14,
+                //             fontWeight: "bold"
+                //         }
+                //     },
+                // });
+                // chart.legend({
+                //     custom: true,
+                //     items: [
+                //         { name: 'blockchain', value: 'blockchain', marker: { symbol: 'line', style: { stroke: '#1890ff', lineWidth: 2 } } },
+                //         { name: 'nlp', value: 'nlp', marker: { symbol: 'line', style: { stroke: '#2fc25b', lineWidth: 2 } } },
+                //     ],
+                // });
                 chart.line().position('date*blockchain').color('#1890ff').shape('smooth');;
                 chart.line().position('date*nlp').color('#2fc25b').shape('smooth');;
-                chart.annotation().dataMarker({
-                    top: true,
-                    position: ['2016-02-28', 9],
-                    text: {
-                        content: 'Blockchain 首超 NLP',
-                        style: {
-                            textAlign: 'left',
-                        },
-                    },
-                    line: {
-                        length: 30,
-                    },
-                });
-                chart.annotation().dataMarker({
-                    top: true,
-                    position: ['2017-12-17', 100],
-                    line: {
-                        length: 30,
-                    },
-                    text: {
-                        content: '2017-12-17, 受比特币影响，\n blockchain搜索热度达到顶峰\n峰值：100',
-                        style: {
-                            textAlign: 'right',
-                        }
-                    },
-                });
-                chart.annotation().text({
-                    top: true,
-                    content: '示例图表',
-                    style: {
-                        textAlign: 'center',
-                        x: 300,
-                        y: -400,
-                        fontSize: 16,
-                        fontWeight: "bold",
-                        fill: "#000"
-                    }
-                });
+                // chart.annotation().dataMarker({
+                //     top: true,
+                //     position: ['2016-02-28', 9],
+                //     text: {
+                //         content: 'Blockchain 首超 NLP',
+                //         style: {
+                //             textAlign: 'left',
+                //         },
+                //     },
+                //     line: {
+                //         length: 30,
+                //     },
+                // });
+                // chart.annotation().dataMarker({
+                //     top: true,
+                //     position: ['2017-12-17', 100],
+                //     line: {
+                //         length: 30,
+                //     },
+                //     text: {
+                //         content: '2017-12-17, 受比特币影响，\n blockchain搜索热度达到顶峰\n峰值：100',
+                //         style: {
+                //             textAlign: 'right',
+                //         }
+                //     },
+                // });
                 chart.removeInteraction('legend-filter'); // 自定义图例，移除默认的分类图例筛选交互
                 // 图表渲染
                 chart.render();
             });
+        //如果在移动端，则隐藏全屏按钮
+        let system = {
+            win: false,
+            mac: false,
+            x11: false
+        };
+        let p = navigator.platform;
+        system.win = p.indexOf("Win") === 0;
+        system.mac = p.indexOf("Mac") === 0;
+        system.x11 = (p === "X11") || (p.indexOf("Linux") === 0);
+        if (system.win || system.mac || system.x11) {
+            //电脑端
+            this.setState({ fullScreenVisible: true });
+        } else {
+            //移动端
+            this.setState({ fullScreenVisible: false });
+        }
+        window.addEventListener('resize', this.handleResize);
+        this.setState({ showIcon: window.innerWidth <= 768 });
     }
+    /**
+    * 
+    * 改变窗口大小调用
+    * 
+    * @param {*} e 改变窗口大小时返回的对象
+    */
+    handleResize = e => this.setState({ showIcon: e.target.innerWidth <= 768 });
     // 复制数据功能
     handleCopyData = () => {
         copy(JSON.stringify(this.state.data, undefined, "\t"));
@@ -125,7 +146,7 @@ export default class DataVis extends Component {
     }
     // 全屏显示功能
     requestFullScreen = () => {
-        let dom = document.getElementById('content');
+        let dom = document.getElementById('chart-container');
         let rfs = dom.requestFullScreen || dom.webkitRequestFullScreen || dom.mozRequestFullScreen || dom.msRequestFullScreen;
         rfs.call(dom);
     }
@@ -141,26 +162,31 @@ export default class DataVis extends Component {
         this.setState({ isFullScreen: isFullScreen ? true : false });
     }
     render() {
-        const { data, isFullScreen } = this.state;
+        const { data, isFullScreen, fullScreenVisible, showIcon } = this.state;
+        let str = JSON.stringify(data, undefined, "\t");
         return (
             <div>
-                <div className="content" id="content">
+                <div className="content datavis-content">
                     <div className="data-container">
                         <div className="controller-area">
                             <CopyOutlined onClick={this.handleCopyData} />
-                            {isFullScreen ?
-                                <FullscreenExitOutlined onClick={this.exitFullscreen} />
-                                :
-                                <FullscreenOutlined onClick={this.requestFullScreen} />
+                            {fullScreenVisible ?
+                                isFullScreen ?
+                                    <FullscreenExitOutlined onClick={this.exitFullscreen} />
+                                    :
+                                    <FullscreenOutlined onClick={this.requestFullScreen} />
+                                : null
                             }
                         </div>
-                        <Input.TextArea value={JSON.stringify(data, undefined, "\t")} readOnly />
+                        {/* <Input.TextArea value={str} readOnly></Input.TextArea> */}
+                        <Monaco value={str} options={{ theme: "vs", minimap: { enabled: false }, readOnly: true, language: "javascript" }} />
                     </div>
-                    <div className="chart-container">
+                    <div className="chart-container" id="chart-container">
+                        <div className="chart-title">示例图表</div>
                         <div id="container"></div>
                     </div>
                 </div>
-                <Button className="custom-btn back-btn" onClick={() => this.props.history.push("/home")} type="primary">返回计算</Button>
+                <Button className="custom-btn back-btn" onClick={() => this.props.history.push("/home")} type="primary">{showIcon ? <RollbackOutlined style={{ fontSize: 18 }} /> : "返回计算"}</Button>
             </div>
         )
     }

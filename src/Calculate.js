@@ -9,8 +9,8 @@ import axios from "axios";
 import moment from 'moment';
 import 'moment/locale/zh-cn';
 import { Map, Marker } from 'react-amap';
-import { Button, message, Select, InputNumber, Tooltip, Drawer, Result, Modal, Table, Popconfirm, notification, DatePicker, TimePicker, Radio } from "antd";
-import { SearchOutlined, DeleteOutlined, QuestionCircleOutlined, InfoCircleOutlined, SwapOutlined } from '@ant-design/icons';
+import { Button, message, Select, InputNumber, Tooltip, Drawer, Result, Modal, Table, Popconfirm, notification, DatePicker, TimePicker, Radio, Input } from "antd";
+import { SearchOutlined, DeleteOutlined, QuestionCircleOutlined, InfoCircleOutlined, SwapOutlined, LineChartOutlined, SaveOutlined } from '@ant-design/icons';
 import locale from 'antd/es/date-picker/locale/zh_CN';
 import copy from 'copy-to-clipboard';
 
@@ -20,9 +20,9 @@ const url = "http://139.217.82.132:5000/";
  * 
  * 地图配置参数
  * 
- * @param {*} Scale 地图比例尺
+ * @param {Boolean} Scale 地图比例尺
  * @param {*} ControlBar 地图旋转、缩放按钮
- * @param {*} Scale 地图切换覆盖层按钮
+ * @param {*} MapType 地图切换覆盖层按钮
 */
 const mapPlugins = [
     'Scale',
@@ -52,6 +52,26 @@ const modelOptions = [
     { label: "WMM2020", value: "wmm" },
     { label: "TIDE", value: "tide" },
 ];
+// 获取计算结果参数单位
+const getParamUnit = key => {
+    switch (key) {
+        case "decYear_UTC":
+            return "yr";
+        case "declination":
+            return "deg";
+        case "f_intensity":
+            return "nT";
+        case "inclination,":
+            return "deg";
+        case "x_intensity":
+            return "nT";
+        case "y_intensity":
+            return "nT";
+        case "z_intensity":
+            return "nT";
+        default: break;
+    }
+}
 /**
  * 
  * 表格列配置
@@ -59,17 +79,21 @@ const modelOptions = [
  * @param {*} title 列名
  * @param {*} dataIndex 数据key
  * @param {*} ellipsis 是否可缩略显示
+ * @param {*} width 列宽
 */
 const columns = [
     {
         title: '参数名称',
         dataIndex: 'paramName',
-        ellipsis: true
+        ellipsis: true,
+        width: 150,
+
     },
     {
         title: '参数值',
         dataIndex: 'paramValue',
-        ellipsis: true
+        ellipsis: true,
+        render: param => <>{param.value}&nbsp;&nbsp;{getParamUnit(param.name)}</>
     },
 ];
 /**
@@ -101,7 +125,7 @@ const objectToDataSource = (data, targetDataSource) => {
         targetDataSource.push({
             key,
             paramName: key,
-            paramValue: data[key]
+            paramValue: { name: key, value: data[key] }
         });
     }
     return targetDataSource;
@@ -130,24 +154,53 @@ const openNotification = () => {
  * @param {*} current 要判断是否符合要求的时间
 */
 const disabledDate = current => current < moment(new Date(2000, 0, 1)) || current > moment();
-
+/**
+ * 
+ * 获取模型名称
+ * 
+ * @param {*} model 模型
+*/
+const getModelName = model => {
+    switch (model) {
+        case "chaos":
+            return "CHAOS7.2";
+        case "difi":
+            return "DIFI4";
+        case "emm":
+            return "EMM2017";
+        case "igrf":
+            return "IGRF13";
+        case "lcs":
+            return "LCS1";
+        case "mf":
+            return "MF7";
+        case "sifm":
+            return "SIFM";
+        case "wmm":
+            return "WMM2020";
+        case "tide":
+            return "TIDE";
+        default:
+            return "未定义";
+    }
+}
 export default class Calculate extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            longitude: 116.18194499239326,
-            latitude: 40.038473890315494,
-            inputLng: 116.18194499239326,
-            inputLat: 40.038473890315494,
+            longitude: 116.3154878488183,
+            latitude: 39.947406053933,
+            inputLng: 116.3154878488183,
+            inputLat: 39.947406053933,
             lngDegree: 116,
-            lngMinute: 10,
-            lngSecond: 55,
-            latDegree: 40,
-            latMinute: 2,
-            latSecond: 19,
+            lngMinute: 18,
+            lngSecond: 56,
+            latDegree: 39,
+            latMinute: 56,
+            latSecond: 51,
             viewMode: false,
             altitude: 0,
-            elevUint: "m",
+            elevUint: "km",
             model: "wmm",
             modelDesc: "",
             modelName: "",
@@ -157,9 +210,9 @@ export default class Calculate extends Component {
             hour: 12,
             minute: 30,
             utc: 8,
+            output: "fdi",
             drwaerVisible: false,
             calcResult: {},
-            calcResult_copy: {},
             calcStatus: undefined,
             resMsg: "",
             modalVisible: false,
@@ -171,17 +224,59 @@ export default class Calculate extends Component {
             calcDataSource: [],
             calcStgParamData: [],
             calcStgResData: [],
-            calcTime: ""
+            calcTime: "",
+            showIcon: false,
+            address: "",
+            searchContent: '',
         };
         const _this = this;
         /**
           * 
           * 地图事件
           * 
+          * @param {*} created 地图创建
           * @param {*} click 点击事件
         */
         this.mapEvents = {
-            click(e) {
+            created: e => {
+                let auto, geocoder;
+                window.AMap.plugin('AMap.Autocomplete', () => {
+                    auto = new window.AMap.Autocomplete({ input: 'tipinput' });
+                })
+                window.AMap.plugin(["AMap.Geocoder"], function () {
+                    geocoder = new window.AMap.Geocoder({
+                        radius: 1000,
+                        extensions: "all"
+                    });
+                    _this.getAddress();
+                });
+                window.AMap.plugin('AMap.PlaceSearch', () => {
+                    window.AMap.event.addListener(auto, "select", e => {
+                        const { name, location } = e.poi;
+                        _this.setState({ searchContent: name });
+                        geocoder.getAddress(location, (status, result) => {
+                            if (status === 'complete' && result.regeocode) {
+                                _this.setState({
+                                    longitude: location.R,
+                                    latitude: location.Q,
+                                    inputLng: location.R,
+                                    inputLat: location.Q,
+                                    lngDegree: parseInt(location.R),
+                                    lngMinute: parseInt(location.R % 1 * 60),
+                                    lngSecond: location.R % 1 * 60 % 1 * 60,
+                                    latDegree: parseInt(location.Q),
+                                    latMinute: parseInt(location.Q % 1 * 60),
+                                    latSecond: location.Q % 1 * 60 % 1 * 60,
+                                    address: result.regeocode.formattedAddress
+                                });
+                            } else {
+                                message.error("查询失败", 2);
+                            }
+                        })
+                    })
+                })
+            },
+            click: e => {
                 _this.setState({
                     longitude: e.lnglat.R,
                     latitude: e.lnglat.Q,
@@ -194,8 +289,18 @@ export default class Calculate extends Component {
                     latMinute: parseInt(e.lnglat.Q % 1 * 60),
                     latSecond: e.lnglat.Q % 1 * 60 % 1 * 60,
                 })
-            },
-        };
+                window.AMap.plugin(["AMap.Geocoder"], function () {
+                    let geocoder = new window.AMap.Geocoder({
+                        radius: 1000, //以已知坐标为中心点，radius为半径，返回范围内兴趣点和道路信息
+                        extensions: "all"//返回地址描述以及附近兴趣点和道路信息，默认"base"
+                    });
+                    geocoder.getAddress(e.lnglat, (status, result) =>
+                        _this.setState({ address: status === 'complete' && result.regeocode ? result.regeocode.formattedAddress : "无数据" })
+                    );
+                });
+
+            }
+        }
         /**
           * 
           * 计算结果表格列配置
@@ -257,12 +362,31 @@ export default class Calculate extends Component {
             },
         ];
     }
+    /**
+    * 
+    * 地图搜索框功能
+    * 
+    * @param {*} value 输入的内容
+    */
+    placeSearch = value => {
+        this.setState({ searchContent: value })
+    }
     // 组件挂载时调用
     componentDidMount() {
         let { model, calcStorage } = this.state;
+        // this.getAddress();
         this.setModelDescName(model);
         this.setCalcDataSource(calcStorage);
+        window.addEventListener('resize', this.handleResize);
+        this.setState({ showIcon: window.innerWidth <= 768 });
     }
+    /**
+    * 
+    * 改变窗口大小调用
+    * 
+    * @param {*} e 改变窗口大小时返回的对象
+    */
+    handleResize = e => this.setState({ showIcon: e.target.innerWidth <= 768 });
     /**
       * 
       * 修改经度或纬度功能
@@ -278,7 +402,7 @@ export default class Calculate extends Component {
             this.setState({
                 longitude: inputLng,
                 latitude: inputLat
-            });
+            }, () => this.getAddress());
         }
     }
     // 根据经纬度的度分秒值在地图上定位功能
@@ -289,8 +413,20 @@ export default class Calculate extends Component {
             this.setState({
                 longitude: lngDegree + lngMinute / 60 + lngSecond / 60 / 60,
                 latitude: latDegree + latMinute / 60 + latSecond / 60 / 60
-            });
+            }, () => this.getAddress());
         }
+    }
+    //获取经纬度的地址名称
+    getAddress = () => {
+        let { longitude, latitude } = this.state;
+        let geocoder = new window.AMap.Geocoder({
+            radius: 1000,
+            extensions: "all"
+        });
+        let _this = this
+        geocoder.getAddress(longitude + "," + latitude, (status, result) =>
+            _this.setState({ address: status === 'complete' && result.regeocode ? result.regeocode.formattedAddress : "无数据" })
+        );
     }
     //切换经度显示格式
     handleChangeViewMode = () => {
@@ -428,15 +564,24 @@ export default class Calculate extends Component {
             minute: moment._d.getMinutes()
         })
     }
+    /**
+      * 
+      * 修改参数格式功能
+      * 
+      * @param {*} e 修改参数格式选项时传入的对象
+    */
+    handleChangeOutput = e => this.setState({ output: e.target.value });
     //提交参数并计算功能，计算成功后，显示计算结果对话框
     handleSubmit = () => {
-        let { inputLng, inputLat, altitude, elevUint, model, minYear, minMonth, minDay, hour, minute, utc } = this.state;
+        let { inputLng, inputLat, altitude, elevUint, model, minYear, minMonth, minDay, hour, minute, utc, output } = this.state;
         let _this = this;
         if (checkNullvalue(inputLng, "经度") && checkNullvalue(inputLat, "纬度") && checkNullvalue(altitude, "高程") && checkNullvalue(utc, "时区")) {
             axios.get(url + model, {
                 params: {
                     declon: inputLng,
                     declat: inputLat,
+                    lon: inputLng,
+                    lat: inputLat,
                     alti: altitude,
                     elevUint,
                     minYear,
@@ -445,19 +590,27 @@ export default class Calculate extends Component {
                     hour,
                     minute,
                     utc,
+                    output,
                     key: "cea2009"
                 }
             }).then(response => {
                 let { data } = response, resDataSource = [];
                 if (typeof (data) === "string") { data = JSON.parse(data.replace(/NaN/g, '"NaN"')); }
-                //深拷贝data对象
-                let data_copy = JSON.parse(JSON.stringify(data));
-                delete data_copy.model;
-                objectToDataSource(data_copy, resDataSource);
+                delete data.model;
+                if (!data.err) {
+                    for (let key in data) {
+                        if (key === "decYear_UTC") {
+                            data[key] = Number(data[key]);
+                        }
+                        if (typeof (data[key]) === "number") {
+                            data[key] = data[key].toFixed(3);
+                        }
+                    }
+                }
+                objectToDataSource(data, resDataSource);
                 _this.setState({
                     resDataSource,
                     calcResult: data,
-                    calcResult_copy: data_copy,
                     calcStatus: data.err ? false : true,
                     resMsg: data.err,
                     modalVisible: true,
@@ -499,8 +652,8 @@ export default class Calculate extends Component {
         for (let i = 0, len = calcStorage.length; i < len; i++) {
             calcDataSource.push({
                 key: i,
-                params: { longitude: calcStorage[i].calcParams.longitude, latitude: calcStorage[i].calcParams.latitude },
-                model: calcStorage[i].calcResult.model,
+                params: { longitude: calcStorage[i].calcParams.longitude.toFixed(6), latitude: calcStorage[i].calcParams.latitude.toFixed(6) },
+                model: getModelName(calcStorage[i].calcParams.model),
                 time: calcStorage[i].calcTime,
                 action: i
             })
@@ -554,10 +707,10 @@ export default class Calculate extends Component {
     }
     //复制计算结果功能
     handleResCopy = () => {
-        let { calcResult_copy } = this.state;
+        let { calcResult } = this.state;
         let str = "参数名称  参数值\r\n";
-        for (let key in calcResult_copy) {
-            str += key + " # " + calcResult_copy[key] + "\r\n";
+        for (let key in calcResult) {
+            str += key + " # " + calcResult[key] + "\r\n";
         }
         copy(str);
         message.success("已复制到剪贴板", 2);
@@ -578,12 +731,20 @@ export default class Calculate extends Component {
         message.success("已复制到剪贴板", 2);
     }
     render() {
-        console.log(this.props);
-        const { longitude, latitude, inputLng, inputLat, lngDegree, lngMinute, lngSecond, latDegree, latMinute, latSecond, viewMode, altitude, elevUint, model, modelDesc, modelName, utc,
-            drwaerVisible, modalVisible, calcStatus, resMsg, storageVisible, detailVisible, resDataSource, calcDataSource, calcStgParamData, calcStgResData, calcTime } = this.state;
+        const { longitude, latitude, inputLng, inputLat, lngDegree, lngMinute, lngSecond, latDegree, latMinute, latSecond, viewMode,
+            altitude, elevUint, model, modelDesc, modelName, utc, output, drwaerVisible, modalVisible, calcStatus, resMsg, storageVisible,
+            detailVisible, resDataSource, calcDataSource, calcStgParamData, calcStgResData, calcTime, showIcon, address, searchContent } = this.state;
         return (
-            <div className="content">
+            <div className="content calculate-content">
                 <div className="params-container">
+                    <div className="param">
+                        <span className="map-param-label">搜索地址：</span>
+                        <Input.Search value={searchContent} id="tipinput" onChange={e => this.placeSearch(e.target.value)} allowClear />
+                    </div>
+                    <div className="param" style={{ display: "flex" }}>
+                        <span className="map-param-label">当前定位地址：</span>
+                        <div style={{ width: "calc(100% - 100px)" }}>{address}</div>
+                    </div>
                     <div className="param">
                         <span className="param-label">经度：</span>
                         <Tooltip placement="top" title="经度范围-180~180">
@@ -622,7 +783,7 @@ export default class Calculate extends Component {
                     </div>
                     <div className="param">
                         <span className="param-label">高程单位：</span>
-                        <Radio.Group defaultValue={elevUint} options={[{ label: "m", value: "m" }, { label: "km", value: "km" }]} onChange={this.handleChangeElevUnit} />
+                        <Radio.Group defaultValue={elevUint} options={[{ label: "km", value: "km" }, { label: "m", value: "m" }]} onChange={this.handleChangeElevUnit} />
                     </div>
                     <div className="param">
                         <span className="param-label">模型：</span>
@@ -646,6 +807,10 @@ export default class Calculate extends Component {
                             <InputNumber defaultValue={utc} max={12} min={-11} precision={0} placeholder="-11~12" onChange={this.handleChangeParam.bind(this, "utc")} />
                         </Tooltip>
                     </div>
+                    <div className="param">
+                        <span className="param-label">参数格式：</span>
+                        <Radio.Group defaultValue={output} options={[{ label: "DFI", value: "fdi" }, { label: "XYZ", value: "xyz" }]} onChange={this.handleChangeOutput} />
+                    </div>
                     <div style={{ textAlign: "center" }}>
                         <Button className="custom-btn calculate-btn" onClick={this.handleSubmit} type="primary">计算</Button>
                     </div>
@@ -655,14 +820,18 @@ export default class Calculate extends Component {
                             title={calcStatus ? modelName + "模型计算成功!" : modelName + "模型计算失败!"}
                             subTitle={calcStatus ? "计算结果如下所示。" : resMsg}
                         />
-                        {calcStatus ? <Table dataSource={resDataSource} columns={columns} bordered pagination={false} /> : null}
-                        <div style={{ padding: "16px 0", textAlign: "center" }}>
-                            <Button className="custom-btn" type="primary" onClick={this.handleResCopy} style={{ height: 44 }}>复制计算结果</Button>
-                        </div>
+                        {calcStatus ?
+                            <>
+                                <Table dataSource={resDataSource} columns={columns} bordered pagination={false} />
+                                <div style={{ padding: "16px 0", textAlign: "center" }}>
+                                    <Button className="custom-btn" type="primary" onClick={this.handleResCopy} style={{ height: 44 }}>复制计算结果</Button>
+                                </div>
+                            </>
+                            : null}
                     </Modal>
                 </div>
                 <div className="map-container">
-                    <Map plugins={mapPlugins} viewMode="3D" amapkey="3dabe81a1752997b9089ccb0b1bfcecb" center={[longitude, latitude]} zoom={3} events={this.mapEvents} >
+                    <Map plugins={mapPlugins} viewMode="3D" amapkey="3dabe81a1752997b9089ccb0b1bfcecb" center={[longitude, latitude]} zoom={3} events={this.mapEvents}>
                         <Marker position={[longitude, latitude]} offset={{ x: -8, y: -21 }}>
                             <div className="marker">
                                 <div className="circle" />
@@ -671,8 +840,8 @@ export default class Calculate extends Component {
                         </Marker>
                     </Map>
                 </div>
-                <Button className="custom-btn storage-btn" onClick={this.handleStgDrawerVisible} type="primary">查看计算记录</Button>
-                <Button className="custom-btn datavis-btn" onClick={() => this.props.history.push("/datavis")} type="primary">数据可视化</Button>
+                <Button className="custom-btn storage-btn" onClick={this.handleStgDrawerVisible} type="primary">{showIcon ? <SaveOutlined style={{ fontSize: 18 }} /> : "查看计算记录"}</Button>
+                <Button className="custom-btn datavis-btn" onClick={() => this.props.history.push("/datavis")} type="primary">{showIcon ? <LineChartOutlined style={{ fontSize: 18 }} /> : "数据可视化"}</Button>
                 <Drawer className="calcdrawer" title="计算记录" placement="left" onClose={this.handleStgDrawerVisible} visible={storageVisible} footerStyle={{ textAlign: "right" }}
                     footer={
                         <Button onClick={() => Modal.confirm({

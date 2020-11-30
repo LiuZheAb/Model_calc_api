@@ -12,8 +12,8 @@ export default class Header extends Component {
         return (
             <div className="header">
                 <div className="header-content">
-                    <img className="logo" src={logo} alt="北京白家疃地球科学国家野外科学观测研究站" draggable={false} />
-                    <div className="title">重力和地磁模型计算系统</div>
+                    <img className="logo" src={logo} alt="智能导钻地磁模型计算器" draggable={false} />
+                    <div className="title">地磁模型计算器</div>
                 </div>
             </div>
         )

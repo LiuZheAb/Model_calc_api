@@ -15,19 +15,19 @@ import DataVis from './DataVis';
 import './index.less';
 
 class App extends Component {
-    render() {
-      return (
-        <div className="main">
-          <Header />
-          <Router>
-            <Route exact path="/datavis" component={DataVis}></Route>
-            <Route exact path={["/", "/home"]} component={Calculate}></Route>
-          </Router>
-          <Footer />
-        </div >
-      )
-    }
+  render() {
+    return (
+      <div className="main">
+        <Header />
+        <Router>
+          <Route exact path="/datavis" component={DataVis}></Route>
+          <Route exact path={["/", "/home"]} component={Calculate}></Route>
+        </Router>
+        <Footer />
+      </div >
+    )
   }
+}
 
 ReactDOM.render(<App />, document.getElementById('root'));
 
