@@ -11,7 +11,7 @@ export default class Footer extends Component {
         return (
             <div className="footer">
                 <span>Copyright &copy;2020 All rights reserved</span>
-                <span>中国科学院地质与地球物理所</span>
+                <span>中国科学院地质与地球物理研究所</span>
                 <span>官方网站: <a href="http://www.igg.cas.cn" target="_blank" rel="noopener noreferrer">http://www.igg.cas.cn</a></span>
             </div>
         )
