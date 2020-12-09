@@ -98,8 +98,8 @@ const url = "http://139.217.82.132:5000/";
  * 地图配置参数
  * 
  * @param {Boolean} Scale 地图比例尺
- * @param {*} ControlBar 地图旋转、缩放按钮
- * @param {*} MapType 地图切换覆盖层按钮
+ * @param {Object} ControlBar 地图旋转、缩放按钮
+ * @param {Object} MapType 地图切换覆盖层按钮
 */
 const mapPlugins = [
     'Scale',
@@ -129,7 +129,12 @@ const modelOptions = [
     { label: "WMM2020", value: "wmm" },
     { label: "TIDE", value: "tide" },
 ];
-// 获取计算结果参数单位
+/**
+ * 
+ * 获取计算结果参数单位
+ * 
+ * @param {String} key 参数名称
+*/
 const getParamUnit = key => {
     switch (key) {
         case "decYear_UTC":
@@ -153,10 +158,10 @@ const getParamUnit = key => {
  * 
  * 表格列配置
  * 
- * @param {*} title 列名
- * @param {*} dataIndex 数据key
- * @param {*} ellipsis 是否可缩略显示
- * @param {*} width 列宽
+ * @param {String} title 列名
+ * @param {String} dataIndex 数据key
+ * @param {Boolean} ellipsis 是否可缩略显示
+ * @param {Number} width 列宽
 */
 const columns = [
     {
@@ -178,7 +183,7 @@ const columns = [
  * 验证是否为空值
  * 
  * @param {*} param 被验证的值
- * @param {*} paramName 被验证值的名称
+ * @param {String} paramName 被验证值的名称
 */
 const checkNullvalue = (param, paramName) => {
     let checks = true;
@@ -194,8 +199,8 @@ const checkNullvalue = (param, paramName) => {
  * 
  * 将对象转换为表格需要的数据格式
  * 
- * @param {*} data 数据源对象
- * @param {*} targetDataSource 转换完成的数据
+ * @param {Object} data 数据源对象
+ * @param {Array} targetDataSource 转换完成的数据
 */
 const objectToDataSource = (data, targetDataSource) => {
     for (let key in data) {
@@ -211,10 +216,10 @@ const objectToDataSource = (data, targetDataSource) => {
  * 
  * 缓存计算结果的消息提示
  * 
- * @param {*} message 消息的标题
- * @param {*} description 消息的具体描述
- * @param {*} duration 显示时长
- * @param {*} placement 显示出现的位置
+ * @param {String} message 消息的标题
+ * @param {String} description 消息的具体描述
+ * @param {Number} duration 显示时长
+ * @param {String} placement 显示出现的位置
 */
 const openNotification = () => {
     notification.info({
@@ -228,14 +233,14 @@ const openNotification = () => {
  * 
  * 日历中不可选日期
  * 
- * @param {*} current 要判断是否符合要求的时间
+ * @param {Object} current 要判断是否符合要求的时间
 */
 const disabledDate = current => current < moment(new Date(2000, 0, 1)) || current > moment();
 /**
  * 
  * 获取模型名称
  * 
- * @param {*} model 模型
+ * @param {String} model 模型名称
 */
 const getModelName = model => {
     switch (model) {
@@ -311,8 +316,8 @@ export default class Calculate extends Component {
           * 
           * 地图事件
           * 
-          * @param {*} created 地图创建
-          * @param {*} click 点击事件
+          * @param {Function} created 地图创建
+          * @param {Function} click 点击事件
         */
         this.mapEvents = {
             created: e => {
@@ -382,12 +387,12 @@ export default class Calculate extends Component {
           * 
           * 计算结果表格列配置
           * 
-          * @param {*} title 列名
-          * @param {*} dataIndex 数据key
-          * @param {*} ellipsis 是否可缩略显示
-          * @param {*} width 列宽
-          * @param {*} align 对齐方式
-          * @param {*} render 渲染方式
+          * @param {String} title 列名
+          * @param {String} dataIndex 数据key
+          * @param {Boolean} ellipsis 是否可缩略显示
+          * @param {String} width 列宽
+          * @param {String} align 对齐方式
+          * @param {HTMLElement} render 渲染方式
         */
         this.calcStorageColumns = [
             {
@@ -443,7 +448,7 @@ export default class Calculate extends Component {
     * 
     * 地图搜索框功能
     * 
-    * @param {*} value 输入的内容
+    * @param {String} value 输入的内容
     */
     placeSearch = value => {
         this.setState({ searchContent: value })
@@ -461,15 +466,15 @@ export default class Calculate extends Component {
     * 
     * 改变窗口大小调用
     * 
-    * @param {*} e 改变窗口大小时返回的对象
+    * @param {Object} e 改变窗口大小时返回的对象
     */
     handleResize = e => this.setState({ showIcon: e.target.innerWidth <= 768 });
     /**
       * 
       * 修改经度或纬度功能
       * 
-      * @param {*} key 判断修改的是经度还是纬度
-      * @param {*} value 经度或纬度的值
+      * @param {String} key 判断修改的是经度还是纬度
+      * @param {Number} value 经度或纬度的值
     */
     handleChangeLngLat = (key, value) => this.setState({ [key]: value }, () => this.locateCenter());
     // 根据经纬度的值在地图上定位功能
@@ -532,30 +537,30 @@ export default class Calculate extends Component {
      * 
      * 修改经度或纬度的度分秒值功能
      * 
-     * @param {*} key 判断修改的是经度还是纬度的度或分或秒
-     * @param {*} value 修改的值
+     * @param {String} key 判断修改的是经度还是纬度的度或分或秒
+     * @param {Number} value 修改的值
     */
     handleChangeDMS = (key, value) => this.setState({ [key]: value }, () => this.locateCenterByDMS());
     /**
       * 
       * 修改高程或时区功能
       * 
-      * @param {*} key 判断修改的是高程还是时区
-      * @param {*} value 高程或时区的值
+      * @param {String} key 判断修改的是高程还是时区
+      * @param {Number} value 高程或时区的值
     */
     handleChangeParam = (key, value) => this.setState({ [key]: value });
     /**
       * 
       * 修改高程单位功能
       * 
-      * @param {*} e 修改高程单位选项时传入的对象
+      * @param {Object} e 修改高程单位选项时传入的对象
     */
     handleChangeElevUnit = e => this.setState({ elevUint: e.target.value });
     /**
       * 
       * 修改磁场模型功能
       * 
-      * @param {*} value 当前所选择的磁场模型
+      * @param {String} value 当前所选择的磁场模型
     */
     handleChangeModel = value => {
         this.setState({ model: value });
@@ -565,7 +570,7 @@ export default class Calculate extends Component {
       * 
       * 设置磁场模型介绍的标题和内容功能，在组件挂载和修改磁场模型调用
       * 
-      * @param {*} value 当前所选择的磁场模型
+      * @param {String} value 当前所选择的磁场模型
     */
     setModelDescName = value => {
         let modelDesc = "", modelName = "";
@@ -620,7 +625,7 @@ export default class Calculate extends Component {
       * 
       * 修改日期功能
       * 
-      * @param {*} moment 所选择日期对应的时间对象
+      * @param {Object} moment 所选择日期对应的时间对象
     */
     handleChangeDate = moment => {
         this.setState({
@@ -633,7 +638,7 @@ export default class Calculate extends Component {
       * 
       * 修改时间功能
       * 
-      * @param {*} moment 所选择时间对应的时间对象
+      * @param {Object} moment 所选择时间对应的时间对象
     */
     handleChangeTime = moment => {
         this.setState({
@@ -645,7 +650,7 @@ export default class Calculate extends Component {
       * 
       * 修改参数格式功能
       * 
-      * @param {*} e 修改参数格式选项时传入的对象
+      * @param {Object} e 修改参数格式选项时传入的对象
     */
     handleChangeOutput = e => this.setState({ output: e.target.value });
     //提交参数并计算功能，计算成功后，显示计算结果对话框
@@ -722,7 +727,7 @@ export default class Calculate extends Component {
       * 
       * 生成计算记录表格所需的数据格式
       * 
-      * @param {*} calcStorage 要转换的数据
+      * @param {Array} calcStorage 要转换的数据
     */
     setCalcDataSource = calcStorage => {
         const calcDataSource = [];
@@ -746,7 +751,7 @@ export default class Calculate extends Component {
       * 
       * 删除计算记录
       * 
-      * @param {*} index 要删除计算记录的序号
+      * @param {Number} index 要删除计算记录的序号
     */
     handleDeleteStorage = index => {
         let { calcStorage } = this.state;
@@ -759,7 +764,7 @@ export default class Calculate extends Component {
       * 
       * 查看计算记录详情
       * 
-      * @param {*} index 要查看计算记录的序号
+      * @param {Number} index 要查看计算记录的序号
     */
     openStgDetailDrawer = index => {
         let { calcStorage } = this.state, calcStgParamData = [], calcStgResData = [];
@@ -892,7 +897,7 @@ export default class Calculate extends Component {
                         <Button className="custom-btn calculate-btn" onClick={this.handleSubmit} type="primary">计算</Button>
                     </div>
                     <Modal title="模型计算结果" visible={modalVisible} onOk={this.openResModal} onCancel={this.closeResModal} footer={null}>
-                    {/* <Modal title="模型计算结果" visible={true} onOk={this.openResModal} onCancel={this.closeResModal} footer={null}> */}
+                        {/* <Modal title="模型计算结果" visible={true} onOk={this.openResModal} onCancel={this.closeResModal} footer={null}> */}
                         <Table columns={columns2} dataSource={data2} scroll={{ x: 1500 }} pagination={false} />
                         <Result
                             status={calcStatus ? "success" : "error"}

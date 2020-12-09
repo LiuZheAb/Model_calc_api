@@ -136,7 +136,7 @@ export default class DataVis extends Component {
     * 
     * 改变窗口大小调用
     * 
-    * @param {*} e 改变窗口大小时返回的对象
+    * @param {Object} e 改变窗口大小时返回的对象
     */
     handleResize = e => this.setState({ showIcon: e.target.innerWidth <= 768 });
     // 复制数据功能
