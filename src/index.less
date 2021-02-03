@@ -407,7 +407,6 @@ code {
   justify-content: space-between;
 
   .stg-details-table {
-    width: 48%;
     margin-bottom: @padding;
   }
 }
@@ -574,7 +573,7 @@ code {
     display: unset;
 
     .stg-details-table {
-      width: 100%;
+      width: 100% !important;
     }
   }
 
@@ -588,4 +587,14 @@ code {
   .ant-result {
     padding: 0 0 8px !important;
   }
+}
+
+.ant-result-title,
+.ant-result-subtitle {
+  font-size: 16px !important;
+  text-align: left !important;
+}
+
+.ant-result-subtitle p {
+  margin-bottom: 0;
 }

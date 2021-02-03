@@ -9,87 +9,10 @@ import axios from "axios";
 import moment from 'moment';
 import 'moment/locale/zh-cn';
 import { Map, Marker } from 'react-amap';
-import { Button, message, Select, InputNumber, Tooltip, Drawer, Result, Modal, Table, Popconfirm, notification, DatePicker, TimePicker, Radio, Input } from "antd";
-import { SearchOutlined, DeleteOutlined, QuestionCircleOutlined, InfoCircleOutlined, SwapOutlined, LineChartOutlined, SaveOutlined } from '@ant-design/icons';
+import { Button, message, InputNumber, Tooltip, Drawer, Result, Modal, Select, Table, Popconfirm, notification, DatePicker, TimePicker, Radio, Input } from "antd";
+import { SearchOutlined, DeleteOutlined, QuestionCircleOutlined, SwapOutlined, LineChartOutlined, SaveOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import locale from 'antd/es/date-picker/locale/zh_CN';
 import copy from 'copy-to-clipboard';
-
-
-const columns2 = [
-    {
-        title: 'Full Name',
-        width: 100,
-        dataIndex: 'name',
-        key: 'name',
-        fixed: 'left',
-    },
-    {
-        title: 'Age',
-        width: 100,
-        dataIndex: 'age',
-        key: 'age',
-        fixed: 'left',
-    },
-    {
-        title: 'Column 1',
-        dataIndex: 'address',
-        key: '1',
-        width: 150,
-    },
-    {
-        title: 'Column 2',
-        dataIndex: 'address',
-        key: '2',
-        width: 150,
-    },
-    {
-        title: 'Column 3',
-        dataIndex: 'address',
-        key: '3',
-        width: 150,
-    },
-    {
-        title: 'Column 4',
-        dataIndex: 'address',
-        key: '4',
-        width: 150,
-    },
-    {
-        title: 'Column 5',
-        dataIndex: 'address',
-        key: '5',
-        width: 150,
-    },
-    {
-        title: 'Column 6',
-        dataIndex: 'address',
-        key: '6',
-        width: 150,
-    },
-    {
-        title: 'Column 7',
-        dataIndex: 'address',
-        key: '7',
-        width: 150,
-    },
-    { title: 'Column 8', dataIndex: 'address', key: '8' },
-    {
-        title: 'Action',
-        key: 'operation',
-        width: 100,
-        render: () => <a>action</a>,
-    },
-];
-
-const data2 = [];
-for (let i = 0; i < 8; i++) {
-    data2.push({
-        key: i,
-        name: `Edrward ${i}`,
-        age: 32,
-        address: `London Park no. ${i}`,
-    });
-}
 
 //模型计算接口地址
 const url = "http://139.217.82.132:5000/";
@@ -129,30 +52,10 @@ const modelOptions = [
     { label: "WMM2020", value: "wmm" },
     { label: "TIDE", value: "tide" },
 ];
-/**
- * 
- * 获取计算结果参数单位
- * 
- * @param {String} key 参数名称
-*/
-const getParamUnit = key => {
-    switch (key) {
-        case "decYear_UTC":
-            return "yr";
-        case "declination":
-            return "deg";
-        case "f_intensity":
-            return "nT";
-        case "inclination,":
-            return "deg";
-        case "x_intensity":
-            return "nT";
-        case "y_intensity":
-            return "nT";
-        case "z_intensity":
-            return "nT";
-        default: break;
-    }
+const models = {
+    "wmm": { model: "WMM2020", name: "1.主磁场" },
+    "emm": { model: "EMM2017", name: "2.岩石圈磁场" },
+    "difi": { model: "DIFI4", name: "3.电离层磁场" },
 }
 /**
  * 
@@ -165,19 +68,60 @@ const getParamUnit = key => {
 */
 const columns = [
     {
+        title: '磁场',
+        dataIndex: 'mf',
+    },
+    {
+        title: 'F(nT)',
+        dataIndex: 'f_intensity',
+    },
+    {
+        title: 'D(degree)',
+        dataIndex: 'declination',
+    },
+    {
+        title: 'I(degree)',
+        dataIndex: 'inclination,',
+    },
+    {
+        title: '模型',
+        dataIndex: 'model',
+    }
+];
+const columns2 = [
+    {
+        title: '磁场',
+        dataIndex: 'mf',
+    },
+    {
+        title: 'X(nT)',
+        dataIndex: 'x_intensity',
+    },
+    {
+        title: 'Y(nT)',
+        dataIndex: 'y_intensity',
+    },
+    {
+        title: 'Z(nT)',
+        dataIndex: 'z_intensity',
+    },
+    {
+        title: '模型',
+        dataIndex: 'model',
+    }
+];
+const paramColumns = [
+    {
         title: '参数名称',
         dataIndex: 'paramName',
         ellipsis: true,
-        width: 150,
-
     },
     {
         title: '参数值',
         dataIndex: 'paramValue',
         ellipsis: true,
-        render: param => <>{param.value}&nbsp;&nbsp;{getParamUnit(param.name)}</>
     },
-];
+]
 /**
  * 
  * 验证是否为空值
@@ -207,7 +151,7 @@ const objectToDataSource = (data, targetDataSource) => {
         targetDataSource.push({
             key,
             paramName: key,
-            paramValue: { name: key, value: data[key] }
+            paramValue: data[key]
         });
     }
     return targetDataSource;
@@ -294,7 +238,7 @@ export default class Calculate extends Component {
             utc: 8,
             output: "fdi",
             drwaerVisible: false,
-            calcResult: {},
+            calcResult: [],
             calcStatus: undefined,
             resMsg: "",
             modalVisible: false,
@@ -302,7 +246,6 @@ export default class Calculate extends Component {
             storageVisible: false,
             detailVisible: false,
             currentStgData: {},
-            resDataSource: [],
             calcDataSource: [],
             calcStgParamData: [],
             calcStgResData: [],
@@ -310,6 +253,8 @@ export default class Calculate extends Component {
             showIcon: false,
             address: "",
             searchContent: '',
+            calcCompleted: 0,
+            calcCompletedTime: ""
         };
         const _this = this;
         /**
@@ -411,12 +356,6 @@ export default class Calculate extends Component {
                     <p style={{ margin: 0 }}>经度:{param.longitude}</p>
                     <p style={{ margin: 0 }}>纬度:{param.latitude}</p>
                 </>
-            },
-            {
-                title: '计算模型',
-                dataIndex: 'model',
-                width: 80,
-                align: "center"
             },
             {
                 title: '计算时间',
@@ -654,55 +593,92 @@ export default class Calculate extends Component {
     */
     handleChangeOutput = e => this.setState({ output: e.target.value });
     //提交参数并计算功能，计算成功后，显示计算结果对话框
-    handleSubmit = () => {
-        let { inputLng, inputLat, altitude, elevUint, model, minYear, minMonth, minDay, hour, minute, utc, output } = this.state;
+    handleCalculate = (model) => {
         let _this = this;
-        if (checkNullvalue(inputLng, "经度") && checkNullvalue(inputLat, "纬度") && checkNullvalue(altitude, "高程") && checkNullvalue(utc, "时区")) {
-            axios.get(url + model, {
-                params: {
-                    declon: inputLng,
-                    declat: inputLat,
-                    lon: inputLng,
-                    lat: inputLat,
-                    alti: altitude,
-                    elevUint,
-                    minYear,
-                    minMonth,
-                    minDay,
-                    hour,
-                    minute,
-                    utc,
-                    output,
-                    key: "cea2009"
+        let { inputLng, inputLat, altitude, elevUint, minYear, minMonth, minDay, hour, minute, utc, output, calcResult, } = this.state;
+        axios.get(url + model, {
+            params: {
+                declon: inputLng,
+                declat: inputLat,
+                lon: inputLng,
+                lat: inputLat,
+                alti: altitude,
+                elevUint,
+                minYear,
+                minMonth,
+                minDay,
+                hour,
+                minute,
+                utc,
+                output,
+                key: "cea2009"
+            }
+        }).then(response => {
+            let { data } = response;
+            let { calcCompleted } = _this.state;
+            data.mf = models[model].name;
+            data.key = calcCompleted;
+            // if (typeof (data) === "string") { data = JSON.parse(data.replace(/NaN/g, '"NaN"')); }
+            for (let key in data) {
+                if (typeof (data[key]) === "number") {
+                    data[key] = Number(data[key].toFixed(2));
                 }
-            }).then(response => {
-                let { data } = response, resDataSource = [];
-                if (typeof (data) === "string") { data = JSON.parse(data.replace(/NaN/g, '"NaN"')); }
-                delete data.model;
-                if (!data.err) {
-                    for (let key in data) {
-                        if (key === "decYear_UTC") {
-                            data[key] = Number(data[key]);
-                        }
-                        if (typeof (data[key]) === "number") {
-                            data[key] = data[key].toFixed(3);
-                        }
+            }
+            calcResult.push(data);
+            _this.setState({
+                calcResult,
+                calcStatus: data.err ? false : true,
+                resMsg: data.err,
+                calcCompleted: calcCompleted + 1
+            });
+            if (calcCompleted === 2) {
+                let sortedArray = [];
+                for (let i = 0, len = calcResult.length; i < len; i++) {
+                    switch (calcResult[i].mf) {
+                        case "1.主磁场":
+                            sortedArray[0] = calcResult[i]
+                            break;
+                        case "2.岩石圈磁场":
+                            sortedArray[1] = calcResult[i]
+                            break;
+                        case "3.电离层磁场":
+                            sortedArray[2] = calcResult[i]
+                            break;
+                        default:
+                            break;
                     }
                 }
-                objectToDataSource(data, resDataSource);
+                if (output === "fdi") {
+                    sortedArray.push({
+                        mf: "总磁场",
+                        f_intensity: (calcResult[1].f_intensity + calcResult[2].f_intensity).toFixed(2),
+                        declination: (calcResult[1].declination + calcResult[2].declination).toFixed(2),
+                        "inclination,": (calcResult[1]["inclination,"] + calcResult[2]["inclination,"]).toFixed(2),
+                        model: "",
+                        key: calcCompleted + 2
+                    });
+                }
                 _this.setState({
-                    resDataSource,
-                    calcResult: data,
-                    calcStatus: data.err ? false : true,
-                    resMsg: data.err,
+                    calcResult: sortedArray,
                     modalVisible: true,
-                }, () => {
-                    if (!data.err) { _this.handleSaveResult(); };
                 });
-            }).catch(() => {
-                _this.setState({ calcStatus: false });
-                message.error("接口调用失败", 2);
-            });
+                _this.handleSaveResult();
+            }
+        }).catch(() => {
+            _this.setState({ calcStatus: false });
+            message.error("接口调用失败", 2);
+        });
+    }
+    handleSubmit = () => {
+        let { inputLng, inputLat, altitude, utc } = this.state;
+        if (checkNullvalue(inputLng, "经度") && checkNullvalue(inputLat, "纬度") && checkNullvalue(altitude, "高程") && checkNullvalue(utc, "时区")) {
+            this.setState({
+                calcCompleted: 0
+            }, () => {
+                for (let model in models) {
+                    this.handleCalculate(model);
+                }
+            })
         }
     }
     //显示计算结果对话框
@@ -714,13 +690,13 @@ export default class Calculate extends Component {
     }
     //缓存计算结果到sessionStorage中
     handleSaveResult = () => {
-        const { longitude, latitude, altitude, elevUint, model, minYear, minMonth, minDay, hour, minute, utc, calcResult, calcStorage } = this.state;
-        const calcParams = { longitude, latitude, altitude, elevUint, model, minYear, minMonth, minDay, hour, minute, utc };
+        const { longitude, latitude, altitude, elevUint, minYear, minMonth, minDay, hour, minute, utc, calcResult, calcStorage } = this.state;
+        const calcParams = { longitude, latitude, altitude, elevUint, minYear, minMonth, minDay, hour, minute, utc };
         const date = new Date();
         let calcTime = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours() > 9 ? date.getHours() : "0" + date.getHours()}:${date.getMinutes() > 9 ? date.getMinutes() : "0" + date.getMinutes()}:${date.getSeconds() > 9 ? date.getSeconds() : "0" + date.getSeconds()}`;
         calcStorage.push({ calcParams, calcResult, calcTime });
         sessionStorage.setItem("calcStorage", JSON.stringify(calcStorage));
-        this.setState({ calcStorage });
+        this.setState({ calcStorage, calcCompletedTime: calcTime });
         this.setCalcDataSource(calcStorage);
     }
     /**
@@ -738,7 +714,7 @@ export default class Calculate extends Component {
                 model: getModelName(calcStorage[i].calcParams.model),
                 time: calcStorage[i].calcTime,
                 action: i
-            })
+            });
         }
         this.setState({ calcDataSource });
     }
@@ -767,15 +743,14 @@ export default class Calculate extends Component {
       * @param {Number} index 要查看计算记录的序号
     */
     openStgDetailDrawer = index => {
-        let { calcStorage } = this.state, calcStgParamData = [], calcStgResData = [];
+        let { calcStorage } = this.state, calcStgParamData = [];
         objectToDataSource(calcStorage[index].calcParams, calcStgParamData);
         delete calcStorage[index].calcResult.model;
-        objectToDataSource(calcStorage[index].calcResult, calcStgResData);
         this.setState({
             currentStgData: calcStorage[index],
             detailVisible: true,
             calcStgParamData,
-            calcStgResData,
+            calcStgResData: calcStorage[index].calcResult,
             calcTime: calcStorage[index].calcTime
         });
     }
@@ -789,11 +764,15 @@ export default class Calculate extends Component {
     }
     //复制计算结果功能
     handleResCopy = () => {
-        let { calcResult } = this.state;
-        let str = "参数名称  参数值\r\n";
-        for (let key in calcResult) {
-            str += key + " # " + calcResult[key] + "\r\n";
-        }
+        let { calcResult, output } = this.state;
+        let str = output === "fdi" ? "磁场,F(nT),D(degree),I(degree),模型\r\n" : "磁场,X(nT),Y(nT),Z(nT),模型\r\n";
+        calcResult.map(item => {
+            str += output === "fdi" ?
+                item.mf + "," + item.f_intensity + "," + item.declination + "," + item["inclination,"] + "," + item.model + "\r\n"
+                :
+                item.mf + "," + item.x_intensity + "," + item.y_intensity + "," + item.z_intensity + "," + item.model + "\r\n";
+            return null;
+        })
         copy(str);
         message.success("已复制到剪贴板", 2);
     }
@@ -805,17 +784,22 @@ export default class Calculate extends Component {
         for (let key in currentStgData.calcParams) {
             str += key + " # " + currentStgData.calcParams[key] + "\r\n";
         }
-        str += "\r\n******计算结果******\r\n参数名称  参数值\r\n";
-        for (let key in currentStgData.calcResult) {
-            str += key + " # " + currentStgData.calcResult[key] + "\r\n";
-        }
+        str += "\r\n******计算结果******\r\n";
+        str += currentStgData.calcResult[0].hasOwnProperty('f_intensity') ? "磁场,F(nT),D(degree),I(degree),模型\r\n" : "磁场,X(nT),Y(nT),Z(nT),模型\r\n";
+        currentStgData.calcResult.map(item => {
+            str += currentStgData.calcResult[0].hasOwnProperty('f_intensity') ?
+                item.mf + "," + item.f_intensity + "," + item.declination + "," + item["inclination,"] + "," + item.model + "\r\n"
+                :
+                item.mf + "," + item.x_intensity + "," + item.y_intensity + "," + item.z_intensity + "," + item.model + "\r\n";
+            return null;
+        })
         copy(str);
         message.success("已复制到剪贴板", 2);
     }
     render() {
         const { longitude, latitude, inputLng, inputLat, lngDegree, lngMinute, lngSecond, latDegree, latMinute, latSecond, viewMode,
             altitude, elevUint, model, modelDesc, modelName, utc, output, drwaerVisible, modalVisible, calcStatus, resMsg, storageVisible,
-            detailVisible, resDataSource, calcDataSource, calcStgParamData, calcStgResData, calcTime, showIcon, address, searchContent } = this.state;
+            detailVisible, calcDataSource, calcStgParamData, calcStgResData, calcTime, showIcon, address, searchContent, calcResult, calcCompleted, calcCompletedTime } = this.state;
         return (
             <div className="content calculate-content">
                 <div className="params-container">
@@ -867,14 +851,14 @@ export default class Calculate extends Component {
                         <span className="param-label">高程单位：</span>
                         <Radio.Group defaultValue={elevUint} options={[{ label: "km", value: "km" }, { label: "m", value: "m" }]} onChange={this.handleChangeElevUnit} />
                     </div>
-                    <div className="param">
+                    {/* <div className="param">
                         <span className="param-label">模型：</span>
                         <Select defaultValue={model} options={modelOptions} onChange={this.handleChangeModel} />
                         <InfoCircleOutlined className="icon-info" onClick={this.handleModeldesDrawerVisible} />
                         <Drawer className="modeldrawer" title={modelName + "模型介绍"} placement="right" onClose={this.handleModeldesDrawerVisible} visible={drwaerVisible} bodyStyle={{ textIndent: "2em" }}>
                             {modelDesc}
                         </Drawer>
-                    </div>
+                    </div> */}
                     <div className="param">
                         <span className="param-label">日期：</span>
                         <DatePicker defaultValue={moment()} locale={locale} placeholder="请选择日期" disabledDate={disabledDate} onChange={this.handleChangeDate} allowClear={false} />
@@ -891,22 +875,26 @@ export default class Calculate extends Component {
                     </div>
                     <div className="param">
                         <span className="param-label">参数格式：</span>
-                        <Radio.Group defaultValue={output} options={[{ label: "DFI", value: "fdi" }, { label: "XYZ", value: "xyz" }]} onChange={this.handleChangeOutput} />
+                        <Radio.Group defaultValue={output} options={[{ label: "FDI", value: "fdi" }, { label: "XYZ", value: "xyz" }]} onChange={this.handleChangeOutput} />
                     </div>
                     <div style={{ textAlign: "center" }}>
                         <Button className="custom-btn calculate-btn" onClick={this.handleSubmit} type="primary">计算</Button>
                     </div>
-                    <Modal title="模型计算结果" visible={modalVisible} onOk={this.openResModal} onCancel={this.closeResModal} footer={null}>
-                        {/* <Modal title="模型计算结果" visible={true} onOk={this.openResModal} onCancel={this.closeResModal} footer={null}> */}
-                        <Table columns={columns2} dataSource={data2} scroll={{ x: 1500 }} pagination={false} />
+                    <Modal title="模型计算结果" visible={modalVisible} onOk={this.openResModal} onCancel={this.closeResModal} footer={null} width={800} style={{ maxWidth: "100%" }}>
                         <Result
                             status={calcStatus ? "success" : "error"}
-                            title={calcStatus ? modelName + "模型计算成功!" : modelName + "模型计算失败!"}
-                            subTitle={calcStatus ? "计算结果如下所示。" : resMsg}
+                            title={calcStatus ? "地址:" + address : "模型计算失败!"}
+                            subTitle={calcStatus ?
+                                <div>
+                                    <p>{"时间:" + calcCompletedTime}</p>
+                                    <p>{"经度:" + (inputLng ? inputLng.toFixed(6) : inputLng)}</p>
+                                    <p>{"纬度:" + (inputLat ? inputLat.toFixed(6) : inputLat)}</p>
+                                </div>
+                                : resMsg}
                         />
-                        {calcStatus ?
+                        {calcCompleted === 3 ?
                             <>
-                                <Table dataSource={resDataSource} columns={columns} bordered pagination={false} />
+                                <Table dataSource={calcResult} columns={output === "fdi" ? columns : columns2} bordered pagination={false} scroll={{ x: 'max-content' }} />
                                 <div style={{ padding: "16px 0", textAlign: "center" }}>
                                     <Button className="custom-btn" type="primary" onClick={this.handleResCopy} style={{ height: 44 }}>复制计算结果</Button>
                                 </div>
@@ -944,8 +932,8 @@ export default class Calculate extends Component {
                     <Drawer className="calcdrawer" title="计算详情" placement="left" visible={detailVisible} onClose={this.closeStgDetailDrawer} footer={null}>
                         <div style={{ textAlign: "right", marginBottom: 10 }}>计算时间：{calcTime}</div>
                         <div className="stg-details-table-container">
-                            <Table className="stg-details-table" title={() => "计算参数"} dataSource={calcStgParamData} columns={columns} bordered pagination={false} />
-                            <Table className="stg-details-table" title={() => "计算结果"} dataSource={calcStgResData} columns={columns} bordered pagination={false} />
+                            <Table className="stg-details-table" scroll={{ x: 'max-content' }} style={{ width: 250 }} title={() => "计算参数"} dataSource={calcStgParamData} columns={paramColumns} bordered pagination={false} />
+                            <Table className="stg-details-table" scroll={{ x: 'max-content' }} style={{ width: "calc(100% - 266px)" }} title={() => "计算结果"} dataSource={calcStgResData} columns={calcStgResData.length ? calcStgResData[0].hasOwnProperty('x_intensity') ? columns2 : columns : columns} bordered pagination={false} />
                         </div>
                         <div style={{ padding: "16px 0", textAlign: "center" }}>
                             <Button className="custom-btn" type="primary" onClick={this.handleStgCopy} style={{ height: 44 }}>复制计算详情</Button>
