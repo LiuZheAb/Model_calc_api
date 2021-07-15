@@ -4,27 +4,35 @@
  *创建时间 : 2020/11/2
  *文件描述 : 主体框架文件
  */
-import React, { Component } from 'react';
+import React, { Component, lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import reportWebVitals from './reportWebVitals';
-import { BrowserRouter as Router, Route } from "react-router-dom";
+import { HashRouter as Router, Route } from "react-router-dom";
 import Header from './Header';
 import Footer from './Footer';
-import Calculate from './Calculate';
-import DataVis from './DataVis';
+// import Calculate from './Calculate';
+// import GtideCalc from './GtideCalc';
+// import DataVis from './DataVis';
 import './index.less';
+
+const Calculate = lazy(() => import('./Calculate'));
+const GtideCalc = lazy(() => import('./GtideCalc'));
+const EQsearch = lazy(() => import('./EQsearch'));
+const DataVis = lazy(() => import('./DataVis'));
 
 class App extends Component {
   render() {
     return (
-      <div className="main">
+      <Router>
         <Header />
-        <Router>
+        <Suspense fallback={null}>
           <Route exact path="/datavis" component={DataVis}></Route>
+          <Route exact path="/gtide" component={GtideCalc}></Route>
+          <Route exact path="/eqsearch" component={EQsearch}></Route>
           <Route exact path={["/", "/home"]} component={Calculate}></Route>
-        </Router>
+        </Suspense>
         <Footer />
-      </div >
+      </Router>
     )
   }
 }

@@ -5,17 +5,35 @@
  *文件描述 : 页面头部组件
  */
 import React, { Component } from 'react';
-import logo from "./assets/images/logo.png";
+import { withRouter } from "react-router-dom"
 
-export default class Header extends Component {
+class Header extends Component {
     render() {
+        let title = ""
+        switch (this.props.location.pathname) {
+            case "/":
+            case "/home":
+                title = "地磁模型计算器";
+                break;
+            case "/gtide":
+                title = "重力模型计算器";
+                break;
+            case "/eqsearch":
+                title = "震例检索";
+                break;
+            case "/datavis":
+                title = "可视化";
+                break;
+            default:
+                break;
+        }
         return (
             <div className="header">
                 <div className="header-content">
-                    <img className="logo" src={logo} alt="智能导钻地磁模型计算器" draggable={false} />
-                    <div className="title">地磁模型计算器</div>
+                    <div className="title">{title}</div>
                 </div>
             </div>
         )
     }
 }
+export default withRouter(Header);

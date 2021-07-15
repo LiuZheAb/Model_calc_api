@@ -54,8 +54,6 @@ const useTypeScript = fs.existsSync(paths.appTsConfig);
 
 // Get the path to the uncompiled service worker (if it exists).
 const swSrc = paths.swSrc;
-const APP_DIR = path.resolve(__dirname, './src');
-const MONACO_DIR = path.resolve(__dirname, './node_modules/monaco-editor');
 
 // style files regexes
 const cssRegex = /\.css$/;
@@ -76,15 +74,7 @@ const hasJsxRuntime = (() => {
     return false;
   }
 })();
-const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
-module.exports = {
-  plugins: [
-    new MonacoWebpackPlugin({
-      // available options are documented at https://github.com/Microsoft/monaco-editor-webpack-plugin#options
-      languages: ['json', "javascript"]
-    })
-  ]
-};
+
 // This is the production and development configuration.
 // It is focused on developer experience, fast rebuilds, and a minimal bundle.
 module.exports = function (webpackEnv) {
@@ -105,7 +95,7 @@ module.exports = function (webpackEnv) {
   const shouldUseReactRefresh = env.raw.FAST_REFRESH;
 
   // common function to get style loaders
-  const getStyleLoaders = (cssOptions, lessOptions, preProcessor) => {
+  const getStyleLoaders = (cssOptions, lessOptions,preProcessor) => {
     const loaders = [
       isEnvDevelopment && require.resolve('style-loader'),
       isEnvProduction && {
@@ -467,23 +457,6 @@ module.exports = function (webpackEnv) {
                 sourceMaps: shouldUseSourceMap,
                 inputSourceMap: shouldUseSourceMap,
               },
-            },
-            {
-              test: /\.css$/,
-              include: APP_DIR,
-              use: [{
-                loader: 'style-loader',
-              }, {
-                loader: 'css-loader',
-                options: {
-                  modules: true,
-                  namedExport: true,
-                },
-              }],
-            }, {
-              test: /\.css$/,
-              include: MONACO_DIR,
-              use: ['style-loader', 'css-loader'],
             },
             // "postcss" loader applies autoprefixer to our CSS.
             // "css" loader resolves paths in CSS and adds assets as dependencies.
